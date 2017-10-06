@@ -95,10 +95,12 @@ for i in range(0, iterations):
         self.eatmem_job3 = \
             '#PBS -joe\n' + \
             'sleep 2\n' + \
-            'python - 300 10 <<EOF\n' + \
+            'let i=0; while [ $i -lt 20 ]; do\n' + \
+            'python - 3000 1 <<EOF\n' + \
             self.eatmem_script + 'EOF\n' + \
+            'done\n' + \
             'sleep 5\n' + \
-            'python - 400 10 <<EOF\n' + \
+            'python - 4000 1 <<EOF\n' + \
             self.eatmem_script + 'EOF\n' + \
             'sleep 10\n'
         self.cpuset_mem_script = """#!/bin/bash
@@ -488,6 +490,10 @@ for i in 1 2 3 4; do while : ; do : ; done & done
              'input-file': cfg_file}
         self.server.manager(MGR_CMD_IMPORT, HOOK, a, self.hook_name)
         os.remove(cfg_file)
+        self.mom.log_match('pbs_cgroups.CF;copy hook-related ' +
+                           'file request received',
+                           max_attempts=3,
+                           starttime=self.server.ctime)
 
     def set_vntype(self, typestring='myvntype'):
         """
@@ -524,9 +530,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         Test to verify that cgroups are not enforced on nodes
         that have an exclude vntype file set
-
-        This test is disabled because it times out while
-        running with other tests, but runs fine by itself.
         """
         name = 'CGROUP8'
         self.load_config(self.cfg1 % ("", '"no_cgroups"', "", ""))
@@ -541,7 +544,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         self.server.status(JOB, [ATTR_o, ATTR_e], jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("no_cgroups is in the excluded vnode " +
-                           "type list: \['no_cgroups'\]",
+                           "type list: ['no_cgroups']",
                            max_attempts=3,
                            starttime=self.server.ctime)
         self.wait_and_remove(o.split(':')[1])
@@ -550,9 +553,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         Test to verify that cgroups are not enforced on nodes
         that have the exclude_hosts set
-
-        This test is disabled because it times out while
-        running with other tests, but runs fine by itself.
         """
         name = 'CGROUP9'
         self.load_config(self.cfg1 % ('"%s"' % self.mom.shortname, "", "", ""))
@@ -567,7 +567,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         o = j.attributes[ATTR_o]
         self.mom.log_match("%s" % self.mom.shortname +
                            " is in the excluded host list: " +
-                           "\['%s'\]" % self.mom.shortname,
+                           "['%s']" % self.mom.shortname,
                            max_attempts=5,
                            starttime=self.server.ctime)
         self.wait_and_remove(o.split(':')[1])
@@ -598,9 +598,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
     def test_cgroup_periodic_update(self):
         """
         Test to verify that cgroups are reporting usage for cput and mem
-
-        This test is disabled because it times out while
-        running with other tests, but runs fine by itself.
         """
         name = 'CGROUP13'
         self.load_config(self.cfg3)
@@ -614,17 +611,26 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         self.server.status(JOB, [ATTR_o, ATTR_e], jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("%s;update_job_usage: " % jid +
+                           "CPU usage: 0.000 secs",
+                           max_attempts=2,
+                           starttime=self.server.ctime)
+        self.mom.log_match("%s;update_job_usage: " % jid +
+                           "Memory usage: mem=0b",
+                           max_attempts=2,
+                           starttime=self.server.ctime)
+        self.mom.log_match("%s;update_job_usage: " % jid +
                            "Memory usage: vmem=0b",
                            max_attempts=2,
                            starttime=self.server.ctime)
-        self.mom.log_match(".*%s;update_job_usage: " % jid,
-                           "CPU usage: .*secs.*",
+        # Allow some time to pass for values to be updated
+        time.sleep(5)
+        self.mom.log_match("%s;update_job_usage: " % jid +
+                           "CPU usage: [0-9.]+ secs",
                            regexp=True,
                            max_attempts=5,
                            starttime=self.server.ctime)
-        time.sleep(5)
-        self.mom.log_match(".*%s;update_job_usage: " % jid +
-                           "Memory usage: vmem=[1-9][0-9]+.*",
+        self.mom.log_match("%s;update_job_usage: " % jid +
+                           "Memory usage: vmem=[1-9][0-9]+kb",
                            regexp=True,
                            max_attempts=5,
                            starttime=self.server.ctime)
@@ -763,23 +769,25 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         name = "CGROUP4"
         self.load_config(self.cfg3)
+        # Restart MoM to work around PP-993
+        self.mom.restart()
         a = {'Resource_List.select': '1:ncpus=1:mem=300mb',
              ATTR_N: name + 'a'}
         j1 = Job(TEST_USER, attrs=a)
         j1.create_script(self.cpuset_mem_script)
         jid1 = self.server.submit(j1)
+        a = {'job_state': 'R'}
+        self.server.expect(JOB, a, jid1)
+        self.server.status(JOB, [ATTR_o, ATTR_e], jid1)
+        o1 = j1.attributes[ATTR_o]
         b = {'Resource_List.select': '1:ncpus=1:mem=300mb',
              ATTR_N: name + 'b'}
         j2 = Job(TEST_USER, attrs=b)
         j2.create_script(self.cpuset_mem_script)
         jid2 = self.server.submit(j2)
         a = {'job_state': 'R'}
-        self.server.expect(JOB, a, jid1)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid1)
-        a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid2)
         self.server.status(JOB, [ATTR_o, ATTR_e], jid2)
-        o1 = j1.attributes[ATTR_o]
         o2 = j2.attributes[ATTR_o]
         tmp_out1 = ''
         tmp_out2 = ''
@@ -800,13 +808,19 @@ for i in 1 2 3 4; do while : ; do : ; done & done
                 tmp_out2 = fd.read().splitlines()
         except:
             self.assertTrue(False, "Job did not produce expected output")
+        self.logger.info("tmp_out1: %s" % tmp_out1)
+        self.logger.info("tmp_out2: %s" % tmp_out2)
         self.wait_and_remove(o1.split(':')[1])
         self.wait_and_remove(o2.split(':')[1])
         self.assertTrue(jid1 in tmp_out1)
         self.assertTrue(jid2 in tmp_out2)
         self.logger.info("job dir check passed")
-        self.assertTrue("CpuIDs=0" in tmp_out1)
-        self.assertTrue("CpuIDs=1" in tmp_out2)
+        if 'CpuIDs=0' in tmp_out1 and 'CpuIDs=1' in tmp_out2:
+            pass
+        elif 'CpuIDs=1' in tmp_out1 and 'CpuIDs=0' in tmp_out2:
+            pass
+        else:
+            self.assertTrue(False)
         self.logger.info("CpuIDs check passed")
 
     def test_cgroup_enforce_memory(self):
@@ -825,7 +839,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         self.server.expect(JOB, a, jid)
         self.server.status(JOB, [ATTR_o, ATTR_e], jid)
         o = j.attributes[ATTR_o]
-        self.mom.log_match("%s;Cgroup mem\w+ limit exceeded" % jid,
+        self.mom.log_match("%s;Cgroup memory limit exceeded" % jid,
                            max_attempts=5,
                            starttime=self.server.ctime)
         self.wait_and_remove(o.split(':')[1])
@@ -1001,7 +1015,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         cput1 = qstat1[0]['resources_used.cput']
         mem1 = qstat1[0]['resources_used.mem']
         vmem1 = qstat1[0]['resources_used.vmem']
-        time.sleep(10)
+        time.sleep(15)
         qstat2 = self.server.status(JOB, resc_list, id=jid)
         for q in qstat2:
             self.logger.info("Q2: %s" % q)
