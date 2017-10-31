@@ -82,7 +82,7 @@ for i in range(0, iterations):
             'sleep 2\n' + \
             'python - 400 10 <<EOF\n' + \
             self.eatmem_script + 'EOF\n' + \
-            'sleep 1\n'
+            'sleep 5\n'
         self.eatmem_job2 = \
             '#PBS -joe\n' + \
             'sleep 2\n' + \
@@ -541,7 +541,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("no_cgroups is in the excluded vnode " +
                            "type list: ['no_cgroups']",
@@ -563,7 +563,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("%s" % self.mom.shortname +
                            " is in the excluded host list: " +
@@ -587,7 +587,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("cgroup excluded for subsystem memory " +
                            "on vnode type no_cgroups_mem",
@@ -608,32 +608,27 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("%s;update_job_usage: " % jid +
                            "CPU usage: 0.000 secs",
-                           max_attempts=2,
-                           starttime=self.server.ctime)
+                           max_attempts=2)
         self.mom.log_match("%s;update_job_usage: " % jid +
                            "Memory usage: mem=0b",
-                           max_attempts=2,
-                           starttime=self.server.ctime)
+                           max_attempts=2)
         self.mom.log_match("%s;update_job_usage: " % jid +
                            "Memory usage: vmem=0b",
-                           max_attempts=2,
-                           starttime=self.server.ctime)
+                           max_attempts=2)
         # Allow some time to pass for values to be updated
         time.sleep(5)
         self.mom.log_match("%s;update_job_usage: " % jid +
                            "CPU usage: [0-9.]+ secs",
                            regexp=True,
-                           max_attempts=5,
-                           starttime=self.server.ctime)
+                           max_attempts=5)
         self.mom.log_match("%s;update_job_usage: " % jid +
                            "Memory usage: vmem=[1-9][0-9]+kb",
                            regexp=True,
-                           max_attempts=5,
-                           starttime=self.server.ctime)
+                           max_attempts=5)
         self.wait_and_remove(o.split(':')[1])
 
     def test_cgroup_cpuset_and_memory(self):
@@ -652,7 +647,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         tmp_out = ''
         try:
@@ -696,7 +691,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         tmp_out = ''
         try:
@@ -737,7 +732,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         tmp_out = ''
         try:
@@ -778,7 +773,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid1 = self.server.submit(j1)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid1)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid1)
+        self.server.status(JOB, ATTR_o, jid1)
         o1 = j1.attributes[ATTR_o]
         b = {'Resource_List.select': '1:ncpus=1:mem=300mb',
              ATTR_N: name + 'b'}
@@ -787,7 +782,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid2 = self.server.submit(j2)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid2)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid2)
+        self.server.status(JOB, ATTR_o, jid2)
         o2 = j2.attributes[ATTR_o]
         tmp_out1 = ''
         tmp_out2 = ''
@@ -820,6 +815,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         elif 'CpuIDs=1' in tmp_out1 and 'CpuIDs=0' in tmp_out2:
             pass
         else:
+            self.logger.info("Processes should be assigned to different CPUs")
             self.assertTrue(False)
         self.logger.info("CpuIDs check passed")
 
@@ -837,7 +833,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("%s;Cgroup memory limit exceeded" % jid,
                            max_attempts=5,
@@ -858,7 +854,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         tmp_out = ''
         try:
@@ -894,7 +890,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         time.sleep(1)
         # Query the pids in the cgroup
@@ -956,7 +952,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("cgroup excluded for subsystem " +
                            "%s on host %s" % ("cpuset", self.mom.shortname),
@@ -978,7 +974,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         time.sleep(1)
         self.mom.log_match("%s is not in " % (self.mom.shortname) +
@@ -1003,7 +999,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         jid = self.server.submit(j)
         a = {'job_state': 'R'}
         self.server.expect(JOB, a, jid)
-        self.server.status(JOB, [ATTR_o, ATTR_e], jid)
+        self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.logger.info("OUTPUT: %s" % o)
         resc_list = ['resources_used.cput']
@@ -1015,6 +1011,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         cput1 = qstat1[0]['resources_used.cput']
         mem1 = qstat1[0]['resources_used.mem']
         vmem1 = qstat1[0]['resources_used.vmem']
+        self.logger.info("Waiting 15 seconds for CPU time to accumulate")
         time.sleep(15)
         qstat2 = self.server.status(JOB, resc_list, id=jid)
         for q in qstat2:
