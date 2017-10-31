@@ -815,8 +815,8 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         elif 'CpuIDs=1' in tmp_out1 and 'CpuIDs=0' in tmp_out2:
             pass
         else:
-            self.logger.info("Processes should be assigned to different CPUs")
-            self.assertTrue(False)
+            self.assertTrue(False,
+                            "Processes should be assigned to different CPUs")
         self.logger.info("CpuIDs check passed")
 
     def test_cgroup_enforce_memory(self):
