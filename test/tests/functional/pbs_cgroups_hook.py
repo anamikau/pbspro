@@ -442,14 +442,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
                     paths['memsw'] = paths['memory']
         return paths
 
-    def random_name(self, length=16):
-        """
-        Returns a string of the specified length consisting of
-        lowercase ASCII characters.
-        """
-        return str().join(random.choice(string.ascii_lowercase)
-                          for _ in range(length))
-
     def load_hook(self, filename):
         """
         Import and enable a hook pointed to by the URL specified.
@@ -459,37 +451,29 @@ for i in 1 2 3 4; do while : ; do : ; done & done
                 script = fd.read()
         except:
             self.assertTrue(False, "Failed to open hook file %s" % filename)
-        newfile = os.path.join(os.sep, 'tmp', self.random_name())
-        with open(newfile, "w") as fd:
-            fd.write(script)
-        try:
-            events = '"execjob_begin,execjob_launch,execjob_attach,'
-            events += 'execjob_epilogue,execjob_end,exechost_startup,'
-            events += 'exechost_periodic"'
-            a = {'enabled': 'True',
-                 'freq': '2',
-                 'event': events}
-            self.server.create_import_hook(self.hook_name, a, script,
-                                           overwrite=True)
-            # Add the configuration
-            self.load_config(self.cfg0)
-        except:
-            raise
-        finally:
-            os.remove(newfile)
+        events = '"execjob_begin,execjob_launch,execjob_attach,'
+        events += 'execjob_epilogue,execjob_end,exechost_startup,'
+        events += 'exechost_periodic"'
+        a = {'enabled': 'True',
+             'freq': '2',
+             'event': events}
+        self.server.create_import_hook(self.hook_name, a, script,
+                                       overwrite=True)
+        # Add the configuration
+        self.load_config(self.cfg0)
 
     def load_config(self, cfg):
         """
         Create a hook configuration file with the provided contents.
         """
-        cfg_file = os.path.join(os.sep, 'tmp', self.random_name())
-        with open(cfg_file, "w") as fd:
-            fd.write(cfg)
+        (fd, fn) = tempfile.mkstemp()
+        os.write(fd, cfg)
+        os.close(fd)
         a = {'content-type': 'application/x-config',
              'content-encoding': 'default',
-             'input-file': cfg_file}
+             'input-file': fn}
         self.server.manager(MGR_CMD_IMPORT, HOOK, a, self.hook_name)
-        os.remove(cfg_file)
+        os.remove(fn)
         self.mom.log_match('pbs_cgroups.CF;copy hook-related ' +
                            'file request received',
                            max_attempts=3,
@@ -501,8 +485,14 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         pbs_home = self.server.pbs_conf['PBS_HOME']
         vntype_file = os.path.join(pbs_home, 'mom_priv', 'vntype')
+        self.logger.info("Setting vntype to %s in %s" %
+                         (typestring, vntype_file))
+        cmd = ['/bin/echo', '%s' % typestring]
+        self.logger.info("Command is: %s" % (cmd))
         with open(vntype_file, "w") as fd:
-            fd.write(typestring)
+            ret = self.du.run_cmd(self.mom.hostname, cmd, stdout=fd, sudo=True)
+        if ret['rc'] != 0:
+            self.skipTest("pbs_cgroups_hook: need root privileges")
 
     def remove_vntype(self):
         """
@@ -510,8 +500,10 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         pbs_home = self.server.pbs_conf['PBS_HOME']
         vntype_file = os.path.join(pbs_home, 'mom_priv', 'vntype')
-        if os.path.isfile(vntype_file):
-            os.remove(vntype_file)
+        cmd = ['/bin/rm', '-f', '%s' % vntype_file]
+        ret = self.du.run_cmd(self.mom.hostname, cmd, sudo=True)
+        if ret['rc'] != 0:
+            self.skipTest("pbs_cgroups_hook: need root privileges")
 
     # Wait for up to ten seconds for a file to appear. Remove it if it does.
     def wait_and_remove(self, filename):
@@ -836,8 +828,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         self.server.status(JOB, ATTR_o, jid)
         o = j.attributes[ATTR_o]
         self.mom.log_match("%s;Cgroup memory limit exceeded" % jid,
-                           max_attempts=5,
-                           starttime=self.server.ctime)
+                           max_attempts=20)
         self.wait_and_remove(o.split(':')[1])
 
     def test_cgroup_enforce_memsw(self):
@@ -916,16 +907,28 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         self.logger.info("tasks: %s" % tasks)
         # Write each PID into the tasks file for the freezer cgroup
         for task in tasks[1:]:
+            cmd = ['/bin/echo', '%s' % task]
             with open(os.path.join(fdir, 'tasks'), 'w') as fd:
-                fd.write(str(task) + '\n')
+                ret = self.du.run_cmd(self.mom.hostname, cmd,
+                                      stdout=fd, sudo=True)
+            if ret['rc'] != 0:
+                self.skipTest("pbs_cgroups_hook: need root privileges")
         # Freeze the cgroup
+        cmd = ['/bin/echo', 'FROZEN']
         with open(os.path.join(fdir, 'freezer.state'), 'w') as fd:
-            fd.write("FROZEN")
+            ret = self.du.run_cmd(self.mom.hostname, cmd,
+                                  stdout=fd, sudo=True)
+        if ret['rc'] != 0:
+            self.skipTest("pbs_cgroups_hook: need root privileges")
         rv1 = self.server.expect(NODE, {'state': 'offline'},
                                  id=self.mom.shortname, interval=3)
         # Thaw the cgroup
+        cmd = ['/bin/echo', 'THAWED']
         with open(os.path.join(fdir, 'freezer.state'), 'w') as fd:
-            fd.write("THAWED")
+            ret = self.du.run_cmd(self.mom.hostname, cmd,
+                                  stdout=fd, sudo=True)
+        if ret['rc'] != 0:
+            self.skipTest("pbs_cgroups_hook: need root privileges")
         time.sleep(1)
         try:
             os.rmdir(fdir)

@@ -684,7 +684,8 @@ class HookUtils(object):
         node = NodeConfig(cgroup.cfg)
         pbs.logmsg(pbs.EVENT_DEBUG4, "%s: NodeConfig class instantiated" %
                    (caller_name()))
-        pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(node)))
+        # Avoid printing repr by default due to its size
+        # pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(node)))
         pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Host assigned job resources: %s" %
                    (caller_name(), jobutil.assigned_resources))
         with Lock(cgroup.cfg['cgroup_lock_file']):
@@ -856,7 +857,8 @@ class HookUtils(object):
         node = NodeConfig(cgroup.cfg)
         pbs.logmsg(pbs.EVENT_DEBUG4, "%s: NodeConfig class instantiated" %
                    (caller_name()))
-        pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(node)))
+        # Avoid printing repr by default due to its size
+        # pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(node)))
         node.create_vnodes()
         host = node.hostname
         # The memory limits are interdependent and might fail when set.
@@ -2741,7 +2743,8 @@ class CgroupUtils(object):
                     available[socket]['MemTotal'])
         pbs.logmsg(pbs.EVENT_DEBUG4,
                    "Available Pre device add: %s" % (available))
-        pbs.logmsg(pbs.EVENT_DEBUG4, "Node Devices: %s" % (node.devices))
+        # Avoid printing node.devices by default due to its size
+        # pbs.logmsg(pbs.EVENT_DEBUG4, "Node Devices: %s" % (node.devices))
         for device in node.devices:
             pbs.logmsg(pbs.EVENT_DEBUG4,
                        "%s: Device Names: %s" %
@@ -3827,7 +3830,8 @@ def main():
                    (caller_name(), hooks.event_name(event.type)))
         pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Hook utility class instantiated" %
                    (caller_name()))
-        pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(hooks)))
+        # Avoid printing repr by default due to its size
+        # pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(hooks)))
     except KeyboardInterrupt:
         raise
     except:
@@ -3850,8 +3854,9 @@ def main():
             pbs.logmsg(pbs.EVENT_DEBUG4,
                        "%s: Job information class instantiated" %
                        (caller_name()))
-            pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" %
-                       (caller_name(), repr(jobutil)))
+            # Avoid printing repr by default due to its size
+            # pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" %
+            #            (caller_name(), repr(jobutil)))
         else:
             pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Event does not include a job" %
                        (caller_name()))
@@ -3863,7 +3868,8 @@ def main():
         cgroup = CgroupUtils(hostname, vnode)
         pbs.logmsg(pbs.EVENT_DEBUG4, "%s: Cgroup utility class instantiated" %
                    (caller_name()))
-        pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(cgroup)))
+        # Avoid printing repr by default due to its size
+        # pbs.logmsg(pbs.EVENT_DEBUG4, "%s: %s" % (caller_name(), repr(cgroup)))
         # Bail out if there is nothing to do
         if not cgroup.subsystems:
             pbs.logmsg(pbs.EVENT_DEBUG,
