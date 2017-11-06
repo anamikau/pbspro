@@ -10813,7 +10813,7 @@ class Scheduler(PBSService):
             try:
                 self.log_match("Sched;reconfigure;Scheduler is reconfiguring",
                                n=10, starttime=reconfig_time)
-                self.log_match("Error reading line", n=10, max_attempts=10,
+                self.log_match("Error reading line", n=10, max_attempts=2,
                                starttime=reconfig_time, existence=False)
             except PtlLogMatchError:
                 _msg = 'Error in validating sched_config changes'
