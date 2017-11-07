@@ -508,32 +508,32 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         if not ret:
             self.skipTest("pbs_cgroups_hook: need root privileges")
 
-    def wait_and_remove_file(self, filename):
+    def wait_and_remove_file(self, filename=''):
         """
         Wait up to ten seconds for a file to appear and then remove it.
         """
         self.logger.info("Removing file: %s" % filename)
         if not filename:
-            return str()
+            raise ValueError('Invalid filename')
         for _ in range(10):
             if not os.path.isfile(filename):
                 break
             try:
                 self.du.rm(hostname=self.mom.hostname, path=filename,
-                           force=True, sudo=True)
+                           force=True, sudo=True, runas=TEST_USER)
             except:
                 time.sleep(1)
         self.assertFalse(os.path.isfile(filename),
                          "File not removed: %s" % filename)
 
-    def wait_and_read_file(self, filename):
+    def wait_and_read_file(self, filename=''):
         """
         Wait up to ten seconds for a file to appear and then read it.
         """
         from ptl.utils.pbs_logutils import PBSLogUtils
         self.logger.info("Reading file: %s" % filename)
         if not filename:
-            return str()
+            raise ValueError('Invalid filename')
         for _ in range(10):
             if os.path.isfile(filename):
                 break
@@ -702,7 +702,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         filename = j.attributes[ATTR_o]
         tmp_file = filename.split(':')[1]
         tmp_out = self.wait_and_read_file(tmp_file)
-        self.logger.info("%s: %s" % (name, tmp_out))
         self.wait_and_remove_file(tmp_file)
         self.assertTrue(jid in tmp_out)
         self.logger.info("job dir check passed")
@@ -733,7 +732,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         filename = j.attributes[ATTR_o]
         tmp_file = filename.split(':')[1]
         tmp_out = self.wait_and_read_file(tmp_file)
-        self.logger.info("%s: %s" % (name, tmp_out))
         self.wait_and_remove_file(tmp_file)
         check_devices = ['b *:* rwm',
                          'c 5:1 rwm',
@@ -834,7 +832,6 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         filename = j.attributes[ATTR_o]
         tmp_file = filename.split(':')[1]
         tmp_out = self.wait_and_read_file(tmp_file)
-        self.logger.info("%s: %s" % (name, tmp_out))
         self.wait_and_remove_file(tmp_file)
         self.assertTrue("MemoryError" in tmp_out,
                         'MemoryError not present in output')
@@ -893,8 +890,8 @@ for i in 1 2 3 4; do while : ; do : ; done & done
                                   stdout=fd, sudo=True)
         if ret['rc'] != 0:
             self.skipTest("pbs_cgroups_hook: need root privileges")
-        rv1 = self.server.expect(NODE, {'state': 'offline'},
-                                 id=self.mom.shortname, interval=3)
+        self.server.expect(NODE, {'state': 'offline'},
+                           id=self.mom.shortname, interval=3)
         # Thaw the cgroup
         cmd = ['/bin/echo', 'THAWED']
         with open(os.path.join(fdir, 'freezer.state'), 'w') as fd:
@@ -903,15 +900,11 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         if ret['rc'] != 0:
             self.skipTest("pbs_cgroups_hook: need root privileges")
         time.sleep(1)
-        self.du.rm(hostname=self.mom.hostname, path=fdir,
-                   force=True, recursive=True, sudo=True)
         self.du.rm(hostname=self.mom.hostname, path=os.path.dirname(fdir),
                    force=True, recursive=True, sudo=True)
-        rv2 = self.server.expect(NODE, {'state': 'free'},
-                                 id=self.mom.shortname, interval=3)
+        self.server.expect(NODE, {'state': 'free'},
+                           id=self.mom.shortname, interval=3)
         self.wait_and_remove_file(tmp_file)
-        self.assertTrue(rv1, 'rv1 was not true')
-        self.assertTrue(rv2, 'rv2 was not true')
 
     def test_cgroup_cpuset_host_excluded(self):
         """
