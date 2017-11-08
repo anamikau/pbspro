@@ -93,6 +93,7 @@ for i in range(0, iterations):
             self.eatmem_script + 'EOF\n' + \
             'sleep 4\n'
         self.eatmem_job3 = \
+            '#PBS -S /bin/bash\n' + \
             '#PBS -joe\n' + \
             'sleep 2\n' + \
             'let i=0; while [ $i -lt 20 ]; do\n' + \
@@ -657,6 +658,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         name = 'CGROUP1'
         self.load_config(self.cfg3)
+        self.mom.restart()
         j = Job(TEST_USER)
         a = {'Resource_List.select': '1:ncpus=1:mem=300mb',
              ATTR_N: name}
@@ -690,6 +692,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         name = 'CGROUP2'
         self.load_config(self.cfg3)
+        self.mom.restart()
         j = Job(TEST_USER)
         a = {'Resource_List.select': '1:ncpus=1',
              ATTR_N: name}
