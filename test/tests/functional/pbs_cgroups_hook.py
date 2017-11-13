@@ -54,6 +54,10 @@ class TestCgroupsHook(TestFunctional):
         self.server.set_op_mode(PTL_CLI)
         self.server.cleanup_jobs(extend='force')
         self.remove_vntype()
+        # restart PBS
+        self.server.restart()
+        self.mom.restart()
+
         self.eatmem_script = """
 import sys
 MB = 2 ** 20
@@ -658,7 +662,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         name = 'CGROUP1'
         self.load_config(self.cfg3)
-        self.mom.restart()
+        #self.mom.restart()
         j = Job(TEST_USER)
         a = {'Resource_List.select': '1:ncpus=1:mem=300mb',
              ATTR_N: name}
@@ -692,7 +696,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         """
         name = 'CGROUP2'
         self.load_config(self.cfg3)
-        self.mom.restart()
+        #self.mom.restart()
         j = Job(TEST_USER)
         a = {'Resource_List.select': '1:ncpus=1',
              ATTR_N: name}
@@ -756,7 +760,7 @@ for i in 1 2 3 4; do while : ; do : ; done & done
         name = "CGROUP4"
         self.load_config(self.cfg3)
         # Restart MoM to work around PP-993
-        self.mom.restart()
+        #self.mom.restart()
         a = {'Resource_List.select': '1:ncpus=1:mem=300mb',
              ATTR_N: name + 'a'}
         j1 = Job(TEST_USER, attrs=a)
